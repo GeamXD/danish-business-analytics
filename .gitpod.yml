@@ -1,7 +1,0 @@
-image:
-  file: .gitpod.Dockerfile
-
-tasks:
-  - init: echo 'Setting up your workspace!'
-    command: |
-      echo 'Ready to go!'
