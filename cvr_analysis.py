@@ -12,6 +12,8 @@ from matplotlib import style
 style.use('ggplot')
 sns.set_style("whitegrid")
 sns.set_palette('colorblind')
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Suppress all warnings
 # warnings.filterwarnings("ignore")
@@ -103,10 +105,99 @@ class CvrBusiness:
                     decline_companies.append(cvr)
 
         return decline_companies
-        
-    def use_case_filter_for_multiple(self):
-        pass
 
+    def find_low_debt_companies(self, data):
+        # Ensure the columns exist and are of the correct type
+        if 'debt_obligations' in data.columns and 'equity' in data.columns:
+            data['debt_obligations'] = data['debt_obligations'].astype(float)
+            data['equity'] = data['equity'].astype(float)
+            
+            # Calculate the debt-to-equity ratio
+            data['debt_to_equity'] = data['debt_obligations'] / data['equity']
+
+            # Identify companies with low debt-to-equity ratio
+            low_debt_companies = data[data['debt_to_equity'] < 0.4]['cvr'].unique()
+            return low_debt_companies
+        else:
+            return "Required columns not found in the data"
+    
+    def analyze_companies(self, data, analysis_choices):
+        results = []
+
+        if 'low_debt' in analysis_choices:
+            low_debt_companies = self.find_low_debt_companies(data)
+            results.append(set(low_debt_companies))
+
+        if 'declining' in analysis_choices:
+            decline_companies = self.find_declining_companies(data)
+            results.append(set(decline_companies))
+
+        if 'profitable' in analysis_choices:
+            profitable_companies = self.find_profitable_companies(data)
+            results.append(set(profitable_companies))
+
+        if results:
+            final_companies = set.intersection(*results)
+        else:
+            final_companies = set()
+
+        return final_companies
+    
+    def compare_companies_profit(self, cvrs, data):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        merged_data = data  # Assuming merged_data contains the necessary info
+
+        # Create a subplot with 1 row and 2 columns
+        fig = make_subplots(rows=1, cols=2, subplot_titles=[f"CVR: {cvrs[0]}", f"CVR: {cvrs[1]}"])
+
+        for i, cvr in enumerate(cvrs, start=1):
+            company_data = merged_data[merged_data['cvr'] == cvr]
+
+            # Create a line plot for each company
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data['profit_loss'], mode='lines', name=f'CVR {cvr}'),
+                row=1, col=i
+            )
+
+        # Update xaxis and yaxis properties
+        fig.update_xaxes(title_text='Year', row=1, col=1)
+        fig.update_xaxes(title_text='Year', row=1, col=2)
+        fig.update_yaxes(title_text='Profit/Loss', row=1, col=1)
+        fig.update_yaxes(title_text='Profit/Loss', row=1, col=2)
+
+        # Update layout properties
+        fig.update_layout(height=600, width=1200, title_text="Profit/Loss Trend Comparison")
+
+        return fig
+    
+    
+    def compare_company_metric(self, data, cvrs, metric):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        fig = go.Figure()
+
+        for cvr in cvrs:
+            company_data = data[data['cvr'] == cvr]
+            company_data.fillna(0, inplace=True)
+
+            # Add trace for each company
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data[metric], mode='lines', name=f'CVR {cvr}')
+            )
+
+        # Update plot layout
+        fig.update_layout(
+            title=f"{metric.capitalize()} Trend Comparison",
+            xaxis_title='Publication Date',
+            yaxis_title=metric.capitalize(),
+            height=500,
+            width=800
+        )
+
+        return fig
 
     @staticmethod
     def missing_data(data):
@@ -119,6 +210,134 @@ class CvrBusiness:
             types.append(dtype)
         tt['types'] = types
         return np.transpose(tt)
+    
+    
+    def compare_roa(self, data, cvrs):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        # Calculate industry averages for ROA
+        industry_roa = data.groupby('industry_code')['return_on_assets'].mean()
+
+        # Create a subplot with 1 row and 2 columns
+        fig = make_subplots(rows=1, cols=2, subplot_titles=[f"CVR: {cvrs[0]}", f"CVR: {cvrs[1]}"])
+
+        for i, cvr in enumerate(cvrs, start=1):
+            company_data = data[data['cvr'] == cvr]
+            if not company_data.empty:
+                industry_code = company_data['industry_code'].iloc[0]
+                avg_roa = industry_roa[industry_code]
+
+                # Add a bar plot for the company's ROA
+                fig.add_trace(
+                    go.Bar(x=company_data['year'], y=company_data['return_on_assets'], name=f'CVR {cvr} - ROA'),
+                    row=1, col=i
+                )
+
+                # Add a line for the industry average ROA
+                fig.add_trace(
+                    go.Scatter(x=company_data['year'], y=[avg_roa]*len(company_data), mode='lines', name='Industry Average', line=dict(color='red', dash='dash')),
+                    row=1, col=i
+                )
+
+        # Update layout properties
+        fig.update_layout(height=600, width=1200, title_text="Return on Assets Comparison", showlegend=True)
+        fig.update_xaxes(title_text='Year')
+        fig.update_yaxes(title_text='ROA')
+
+        return fig
+    
+    def compare_current_ratio_single_plot(self, data, cvrs):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        fig = go.Figure()
+
+        for cvr in cvrs:
+            company_data = data[data['cvr'] == cvr]
+
+            # Create a line plot for each company's current ratio
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data['current_ratio'], mode='lines', name=f'CVR {cvr}')
+            )
+
+        # Update layout properties
+        fig.update_layout(
+            title="Current Ratio Comparison",
+            xaxis_title='Publication Date',
+            yaxis_title='Current Ratio',
+            height=600,
+            width=800
+        )
+
+        return fig
+
+    def compare_current_ratio(self, data, cvrs):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        # Create a subplot with 1 row and 2 columns
+        fig = make_subplots(rows=1, cols=2, subplot_titles=[f"CVR: {cvrs[0]}", f"CVR: {cvrs[1]}"])
+
+        for i, cvr in enumerate(cvrs, start=1):
+            company_data = data[data['cvr'] == cvr]
+
+            # Create a line plot for each company's current ratio
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data['current_ratio'], mode='lines', name=f'CVR {cvr}'),
+                row=1, col=i
+            )
+
+        # Update xaxis and yaxis properties
+        fig.update_xaxes(title_text='Publication Date', row=1, col=1)
+        fig.update_xaxes(title_text='Publication Date', row=1, col=2)
+        fig.update_yaxes(title_text='Current Ratio', row=1, col=1)
+        fig.update_yaxes(title_text='Current Ratio', row=1, col=2)
+
+        # Update layout properties
+        fig.update_layout(height=600, width=1200, title_text="Current Ratio Comparison")
+
+        return fig
+    
+
+    def compare_solvency_ratio_side_by_side(self, data, cvrs):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        fig = make_subplots(rows=1, cols=2, subplot_titles=[f"CVR: {cvrs[0]}", f"CVR: {cvrs[1]}"])
+
+        for i, cvr in enumerate(cvrs, start=1):
+            company_data = data[data['cvr'] == cvr]
+
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data['solvency_ratio'], mode='lines', name=f'CVR {cvr}'),
+                row=1, col=i
+            )
+
+            fig.add_hline(y=1, line_dash="dash", line_color="red", row=1, col=i)
+
+        fig.update_layout(height=600, width=1200, title_text="Solvency Ratio Comparison")
+        return fig
+
+
+    def compare_solvency_ratio_combined(self, data, cvrs):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        fig = go.Figure()
+
+        for cvr in cvrs:
+            company_data = data[data['cvr'] == cvr]
+
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data['solvency_ratio'], mode='lines', name=f'CVR {cvr}')
+            )
+
+        fig.add_hline(y=1, line_dash="dash", line_color="red")
+        fig.update_layout(title="Combined Solvency Ratio Trend", xaxis_title='Publication Date', yaxis_title='Solvency Ratio', height=600, width=800)
+        return fig
+
+
 
     @staticmethod
     def unique_values(data):
