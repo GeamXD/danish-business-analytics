@@ -3,7 +3,6 @@ import os
 import json
 from dotenv import load_dotenv
 import together
-import streamlit as st
 
 # load dotenv from environment
 load_dotenv()
@@ -32,10 +31,10 @@ prompt_1 = f"""
 output = together.Complete.create(
   prompt=prompt_1,
   model="mistralai/Mixtral-8x7B-Instruct-v0.1",
-  max_tokens = 250,
-  temperature = 0.8,
+  max_tokens = 512,
+  temperature = 1,
 )
 # parse the completion then print the whole output
 generatedText = output['output']['choices'][0]['text']
 
-st.markdown(generatedText)
+print(generatedText)
