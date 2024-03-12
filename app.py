@@ -1,10 +1,12 @@
 import streamlit as st
 import sqlite3
 import hashlib
+import ai as aipy
+
 
 st.set_page_config(
     page_title="Benchmark App",
-    page_icon="🏂",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded")
 
@@ -78,11 +80,30 @@ def main_app():
     _, colB, _ = st.columns([1, 2, 1])
     with colB:
         st.markdown('#### Welcome to Benchmark App 📈⏱️📊')
-
+    
     with st.sidebar:
         st.title('🔍 Filters')
         st.title('👤 User Inputs')
         st.text_input('Enter CVR')
+
+        # Last option at the bottom
+        json_data = aipy.load_json()
+        # gets company names
+        companies_name = [company['company_name'] for company in json_data]
+        companies_name.insert(0,'')
+        selected_company = st.selectbox('Load Business Overview', companies_name)
+
+        # gets company description
+    # If company name is selected
+    if selected_company:
+        description = aipy.get_company_description(json_data, selected_company)
+        mrkd = aipy.get_markdown_description(description)
+        st.markdown(mrkd)
+    
+    # description = aipy.get_company_description(json_data, companies_name[0])
+    # st.write(description)
+
+
 
 
 ####################### AUTHENTICATION ##################################
