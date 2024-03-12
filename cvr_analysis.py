@@ -5,18 +5,16 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
+# import matplotlib.pyplot as plt
+# import seaborn as sns
 import warnings
-from matplotlib import style
-style.use('ggplot')
-sns.set_style("whitegrid")
-sns.set_palette('colorblind')
+# from matplotlib import style
+# style.use('ggplot')
+# sns.set_style("whitegrid")
+# sns.set_palette('colorblind')
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
-# Suppress all warnings
-# warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore")
 
 class CvrBusiness:
     
@@ -415,18 +413,3 @@ class CvrBusiness:
             uniques.append(unique) 
         tt['Uniques'] = uniques
         return np.transpose(tt)
-
-
-
-#usage
-cvr_business = CvrBusiness()
-merged_data = cvr_business.merge_tables()
-print(merged_data.head())
-
-# To check for missing data
-missing = CvrBusiness.missing_data(merged_data)
-print(missing)
-
-# To check for unique values
-unique_vals = CvrBusiness.unique_values(merged_data)
-print(unique_vals)
