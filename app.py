@@ -1,58 +1,138 @@
 import streamlit as st
-import streamlit_shadcn_ui as ui
-import hmac
+import sqlite3
+import hashlib
+
+st.set_page_config(
+    page_title="Benchmark App",
+    page_icon="🏂",
+    layout="wide",
+    initial_sidebar_state="expanded")
+
+# Function to create a new database connection
 
 
-st.set_page_config(page_title="Streamlit Shadcn UI",
-                   page_icon=":shark:", layout="wide")
+def get_connection():
+    return sqlite3.connect('users.db', check_same_thread=False)
 
-# Create columns with desired width proportions
+# Function to create the users table
+
+
+def create_users_table():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        'CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password TEXT)')
+    c.close()
+    conn.close()
+
+
+# Create the users table if it does not exist
+create_users_table()
+
+# Function to hash the password
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# Function to validate the login
+
+
+def validate_login(username, hashed_password):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE username =? AND password =?',
+              (username, hashed_password))
+    result = c.fetchone()
+    c.close()
+    conn.close()
+    return result is not None
+
+# Function to insert a new user
+
+
+def insert_user(username, hashed_password):
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        c.execute('INSERT INTO users(username, password) VALUES (?,?)',
+                  (username, hashed_password))
+        conn.commit()
+        result = True
+    except sqlite3.IntegrityError:
+        result = False
+    finally:
+        c.close()
+        conn.close()
+    return result
+
+####################### APP LAYOUT ##################################
+
+
 _, col2, _ = st.columns([1, 2, 1])
 
-###################### LOGIN ########################################
+# Function to create the main app
 
 
-def check_password():
-    # Returns `True` if the user had a correct password.
+def main_app():
+    _, colB, _ = st.columns([1, 2, 1])
+    with colB:
+        st.markdown('#### Welcome to Benchmark App 📈⏱️📊')
 
-    def login_form():
-        # Place the form in the middle column
+    with st.sidebar:
+        st.title('🔍 Filters')
+        st.title('👤 User Inputs')
+        st.text_input('Enter CVR')
 
-        with col2:
-            # Form with widgets to collect user information
-            with st.form("Credentials"):
-                st.text_input("Username", key="username")
-                st.text_input("Password", type="password", key="password")
-                st.form_submit_button("Log in", on_click=password_entered)
 
-    def password_entered():
-        # Checks whether a password entered by the user is correct
-        if st.session_state["username"] in st.secrets[
-            "passwords"
-        ] and hmac.compare_digest(
-            st.session_state["password"],
-            st.secrets.passwords[st.session_state["username"]],
-        ):
-            st.session_state["password_correct"] = True
-            # Don't store the username or password.
-            del st.session_state["password"]
-            del st.session_state["username"]
-        else:
-            st.session_state["password_correct"] = False
+####################### AUTHENTICATION ##################################
 
-    # Return True if the username + password is validated.
-    if st.session_state.get("password_correct", False):
-        return True
+# Function to create the login form
+def login_form():
+    with col2:
+        st.markdown(
+            "<h2 style='text-align: center; color: #333333;'>Login</h2>", unsafe_allow_html=True)
+        with st.form("Credentials"):
+            username = st.text_input(
+                "Username", key="username", placeholder="User Name", label_visibility='hidden')
+            password = st.text_input(
+                "Password", type="password", key="password", placeholder="Password", label_visibility='hidden')
+            submit_button = st.form_submit_button("Log in")
 
-    # Show inputs for username + password.
+            if submit_button and username and password:
+                hashed_password = hash_password(password)
+                if validate_login(username, hashed_password):
+                    st.session_state["authenticated"] = True
+                    st.success("🎉 Logged in successfully.")
+                else:
+                    st.error("😕 User not known or password incorrect")
+
+
+# Function to create the sign up form
+def sign_up_form():
+    with col2:
+        st.write('')
+        st.write('')
+        st.write('')
+        st.markdown(
+            "<h2 style='text-align: center; color: #333333;'>Sign Up</h2>", unsafe_allow_html=True)
+        with st.form("Sign_up"):
+            new_username = st.text_input(
+                "New username", key="new_username", placeholder="Enter New User Name", label_visibility='hidden')
+            new_password = st.text_input(
+                "New password", type="password", key="new_password", placeholder="Enter New Password", label_visibility='hidden')
+            submit_button = st.form_submit_button("Sign up")
+
+            if submit_button and new_username and new_password:
+                hashed_password = hash_password(new_password)
+                if insert_user(new_username, hashed_password):
+                    st.success("User created successfully.")
+                else:
+                    st.error("This username is already taken.")
+
+
+if not st.session_state.get("authenticated"):
     login_form()
-    if "password_correct" in st.session_state:
-        st.error("😕 User not known or password incorrect")
-    return False
-
-
-if not check_password():
-    st.stop()
-
-####################### Main Streamlit ##################################
-st.write('welcome to the app')
+    sign_up_form()
+else:
+    main_app()
