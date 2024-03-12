@@ -32,11 +32,8 @@ def get_company_description(data, company_name):
 def get_markdown_description(description):
     # Prompt
     prompt_1 = f"""
-        Summarize the text below, into a markdown format.
-        Outline the business in this format.
-        Business Name in Bold at the top.
-        what they offer or what they do with a heading called Services or,
-        who they are.
+        Write a business overview with the text below, into a markdown format.
+        make it official like in a website page
         text: {description}
     """
 
@@ -44,8 +41,8 @@ def get_markdown_description(description):
     output = together.Complete.create(
         prompt=prompt_1,
         model="mistralai/Mixtral-8x7B-Instruct-v0.1",
-        max_tokens = 500,
-        temperature = 0.8,
+        max_tokens = 512,
+        temperature = 0.5,
     )
     
     # parse the completion then print the whole output

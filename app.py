@@ -2,7 +2,7 @@ import streamlit as st
 import sqlite3
 import hashlib
 import ai as aipy
-
+from cvr_analysis import CvrBusiness
 
 st.set_page_config(
     page_title="Benchmark App",
@@ -75,16 +75,61 @@ _, col2, _ = st.columns([1, 2, 1])
 
 # Function to create the main app
 
-
 def main_app():
+
+
+    @st.cache_data
+    def load_data():
+        cvr_business = CvrBusiness()
+        data = cvr_business.merge_tables()
+        return data
+
+
+
+
     _, colB, _ = st.columns([1, 2, 1])
     with colB:
         st.markdown('#### Welcome to Benchmark App 📈⏱️📊')
     
+    # data = load_data()
+ 
+
+
+
+    ## side bar
     with st.sidebar:
         st.title('🔍 Filters')
+
+        # Select a filter for merged data -- uses analyze business
+        filters = ['low_debt', 'declining', 'profitable']
+        select_filter = st.multiselect('Add Filter', filters)
+
+        # Select Plots to show
+        st.title('Trend Analysis')
+        plot_1 = st.multiselect('Select Plot', ['compare companies profit','compare company metric'])
+        # plot_2 = []
+
+        st.title('Comparison Analysis')
+        plot_3 = st.multiselect('Select Plot 2', ['compare roa' ])
+
+        st.title('Financial Health Indicators')
+        plot_4 = st.multiselect('Select Plot 3', ['compare current ratio (single plot)', 
+        'compare current ratio', 'compare solvency ratio side_by_side', 
+        'compare solvency ratio combined'])
+        # plot_5 = []
+        # plot_6 = []
+        # plot_7 = []
+
+        st.title('Correlation  Analysis')
+        plot_8 = st.multiselect('Select Plot 4', ['compare revenue profit_loss'])
+        
+        st.title('Benchmarking  Analysis')
+        plot_9 = st.multiselect('Select Plot 5', ['compare total employee count'])
+
+
         st.title('👤 User Inputs')
-        st.text_input('Enter CVR')
+        cvr_num1 = st.text_input('Enter CVR_1')
+        cvr_num2 = st.text_input('Enter CVR_2')
 
         # Last option at the bottom
         json_data = aipy.load_json()
@@ -102,6 +147,11 @@ def main_app():
     
     # description = aipy.get_company_description(json_data, companies_name[0])
     # st.write(description)
+
+    if select_filter:
+        cvrs_filtered = cvr_business.analysis_choices(data, select_filter)
+        filtered_d = cvr_business.apply_filter(cvrs_filtered, data)
+    
 
 
 

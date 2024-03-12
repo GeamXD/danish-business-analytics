@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import os
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 import warnings
@@ -66,7 +67,7 @@ class CvrBusiness:
         # Data Cleaning and Type conversion
         df_financials['cvr'] = df_financials['cvr'].astype(str)
         df_company['cvr_number'] = df_company['cvr_number'].astype(str)
-        df_financials['publication_date'] = pd.to_datetime(df_financials['publication_date'], errors='coerce')
+        df_financials['publication_date'] = pd.to_datetime(df_financials['publication_date'], format='mixed')
 
         # Merge DataFrames
         merged_data = df_financials.merge(df_observations, on='cvr').merge(df_company, left_on='cvr', right_on='cvr_number')
@@ -93,7 +94,12 @@ class CvrBusiness:
 
         return five_yr_or_more_profit_companies
 
-    def find_declining_companies(self, merged_data, start_year=8, end_year=2):
+    def find_declining_companies(self, merged_data, start_year=-10, end_year=-2):
+
+        # # Ensure 'publication_date' is in datetime format
+        # if not is_datetime(merged_data['publication_date']):
+        #     merged_data['publication_date'] = pd.to_datetime(merged_data['publication_date'], errors='coerce')
+
         filtered_data = merged_data.sort_values(by='publication_date')
         decline_companies = []
 
@@ -144,6 +150,11 @@ class CvrBusiness:
 
         return final_companies
     
+    def apply_filter(self, filters_cvrs, data):
+        filtered_data = data[data['cvr'].isin(filters_cvrs)]
+        return filtered_data
+
+
     def compare_companies_profit(self, cvrs, data):
         if len(cvrs) != 2:
             return "Please provide exactly two CVRs for comparison."
