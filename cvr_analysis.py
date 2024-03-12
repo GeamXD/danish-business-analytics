@@ -73,6 +73,9 @@ class CvrBusiness:
         # Merge DataFrames
         merged_data = df_financials.merge(df_observations, on='cvr').merge(df_company, left_on='cvr', right_on='cvr_number')
         
+        # Fill missing values for Nans
+        merged_data.fillna(0, inplace=True)
+
         return merged_data
     
     def find_profitable_companies(self, merged_data):
@@ -337,6 +340,68 @@ class CvrBusiness:
         fig.update_layout(title="Combined Solvency Ratio Trend", xaxis_title='Publication Date', yaxis_title='Solvency Ratio', height=600, width=800)
         return fig
 
+
+    def compare_revenue_profit_loss(self, data, cvrs):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        fig = make_subplots(rows=1, cols=2, subplot_titles=[f"Revenue vs. Profit/Loss for CVR: {cvrs[0]}", 
+                                                            f"Revenue vs. Profit/Loss for CVR: {cvrs[1]}"])
+
+
+        for i, cvr in enumerate(cvrs, start=1):
+            company_data = data[data['cvr'] == cvr]
+            company_data.fillna(0, inplace=True)
+            # Add Revenue trace
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data['revenue'], mode='lines', name=f'CVR {cvr} - Revenue', line=dict(color='blue')),
+                row=1, col=i
+            )
+
+            # Add Profit/Loss trace
+            fig.add_trace(
+                go.Scatter(x=company_data['publication_date'], y=company_data['profit_loss'], mode='lines', name=f'CVR {cvr} - Profit/Loss', line=dict(color='green')),
+                row=1, col=i
+            )
+
+        fig.update_layout(height=600, width=1200, title_text="Comparison of Revenue vs. Profit/Loss")
+        fig.update_xaxes(title_text='Publication Date')
+        fig.update_yaxes(title_text='Amount')
+        return fig
+    
+    def compare_total_employee_count(self, data, cvrs, year=None):
+        if len(cvrs) != 2:
+            return "Please provide exactly two CVRs for comparison."
+
+        # Filter data by the specified year if provided
+        if year is not None:
+            data = data[data['year'] == year]
+
+        # Calculate total employee counts
+        mean_counts = data.groupby('cvr')['employee_count'].sum().reset_index()
+
+        # Filter the data for the specified CVRs
+        filtered_data = mean_counts[mean_counts['cvr'].isin(cvrs)]
+
+        # Create the bar chart
+        fig = go.Figure(data=[
+            go.Bar(
+                x=filtered_data['cvr'],
+                y=filtered_data['employee_count'],
+                marker_color=['blue', 'green']  # Custom colors for each bar
+            )
+        ])
+
+        # Update layout
+        fig.update_layout(
+            title='Total Employee Count Comparison' + (f' in {year}' if year is not None else ''),
+            xaxis_title='CVR',
+            yaxis_title='Average Employee Count',
+            height=500,
+            width=800
+        )
+
+        return fig
 
 
     @staticmethod
