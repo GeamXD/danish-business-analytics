@@ -185,7 +185,7 @@ class CvrBusiness:
         return fig
     
     
-    def compare_company_metric(self, data, cvrs, metric):
+    def compare_company_metric(self, data, cvrs, metric='profit_loss'):
         if len(cvrs) != 2:
             return "Please provide exactly two CVRs for comparison."
 

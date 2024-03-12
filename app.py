@@ -110,7 +110,7 @@ def main_app():
         # plot_2 = []
 
         st.title('Comparison Analysis')
-        plot_3 = st.multiselect('Select Plot 2', ['compare roa' ])
+        plot_3 = st.multiselect('Select Plot 2', ['compare roa'])
 
         st.title('Financial Health Indicators')
         plot_4 = st.multiselect('Select Plot 3', ['compare current ratio (single plot)', 
@@ -139,19 +139,60 @@ def main_app():
         selected_company = st.selectbox('Load Business Overview', companies_name)
 
         # gets company description
-    # If company name is selected
-    if selected_company:
-        description = aipy.get_company_description(json_data, selected_company)
-        mrkd = aipy.get_markdown_description(description)
-        st.markdown(mrkd)
     
-    # description = aipy.get_company_description(json_data, companies_name[0])
-    # st.write(description)
+    # gets cvr_list
+    cvr_list = [cvr_num1, cvr_num2]
 
+    # Get filered data
     if select_filter:
         cvrs_filtered = cvr_business.analysis_choices(data, select_filter)
         filtered_d = cvr_business.apply_filter(cvrs_filtered, data)
     
+    if plot_1:
+        if 'compare companies profit' in plot_1:
+            fig_1 = cvr_business.compare_companies_profit(cvr_list, filtered_d)
+        if 'compare company metric' in plot_1:
+            fig_2 = cvr_business.compare_company_metric(filtered_d, cvr_list, )
+
+    if plot_3:
+        fig_3 = cvr_business.compare_roa(filtered_d, cvr_list)
+    
+    if plot_4:
+        if 'compare current ratio (single plot)' in plot_4:
+            fig_4 = cvr_business.compare_current_ratio_single_plot(filtered_d, cvr_list)
+        if 'compare current ratio' in plot_4:
+            fig_5 = cvr_business.compare_current_ratio(filtered_d, cvr_list)
+        if 'compare solvency ratio side_by_side' in plot_4:
+            fig_6 = cvr_business.compare_solvency_ratio_side_by_side(filtered_d, cvr_list)
+        if 'compare solvency ratio combined' in plot_4:
+            fig_7 = cvr_business.compare_solvency_ratio_combined(filtered_d. cvr_list)
+    
+    if plot_8:
+        fig_8 = cvr_business.compare_revenue_profit_loss(filtered_d, cvr_list)
+    
+    if plot_9:
+        fig_9 = cvr_business.compare_total_employee_count(filtered_d, cvr_list)
+
+
+    column = st.columns(3)
+
+    with column[0]:
+        st.plotly_chart(fig_1)
+    
+    with column[1]:
+        st.plotly_chart[fig3]
+    
+    with column[2]:
+        st.plotly_chart(fig8)
+
+
+
+
+     # If company name is selected
+    if selected_company:
+        description = aipy.get_company_description(json_data, selected_company)
+        mrkd = aipy.get_markdown_description(description)
+        st.markdown(mrkd)
 
 
 
