@@ -77,10 +77,10 @@ _, col2, _ = st.columns([1, 2, 1])
 
 def main_app():
 
+    cvr_business = CvrBusiness()
 
     @st.cache_data
     def load_data():
-        cvr_business = CvrBusiness()
         data = cvr_business.merge_tables()
         return data
 
