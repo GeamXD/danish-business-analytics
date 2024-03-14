@@ -129,27 +129,44 @@ class CvrBusiness:
             return "Required columns not found in the data"
     
     def analyze_companies(self, data, analysis_choices):
-        results = []
 
-        if 'low_debt' in analysis_choices:
+        if 'low_debt' in analysis_choices and len(analysis_choices) == 1:
             low_debt_companies = self.find_low_debt_companies(data)
-            results.append(set(low_debt_companies))
-
-        if 'declining' in analysis_choices:
+            return low_debt_companies
+        elif 'declining' in analysis_choices and len(analysis_choices) == 1:
             decline_companies = self.find_declining_companies(data)
-            results.append(set(decline_companies))
-
-        if 'profitable' in analysis_choices:
+            return decline_companies
+        elif 'profitable' in analysis_choices and len(analysis_choices) == 1:
             profitable_companies = self.find_profitable_companies(data)
-            results.append(set(profitable_companies))
+            return profitable_companies
+        elif 'low_debt' in analysis_choices and 'declining' in analysis_choices and len(analysis_choices) == 2:
+            low_debt_companies = self.find_low_debt_companies(data)
+            fil_low = data[data['cvr'].isin(low_debt_companies)]
+            decline_companies = self.find_declining_companies(fil_low)
+            return set(low_debt_companies) and set(decline_companies)
 
-        if results:
-            final_companies = set.intersection(*results)
-        else:
-            final_companies = set()
-
-        return final_companies
+        elif 'low_debt' in analysis_choices and 'profitable' in analysis_choices and len(analysis_choices) == 2:
+            low_debt_companies = self.find_low_debt_companies(data)
+            fil_low = data[data['cvr'].isin(low_debt_companies)]
+            profitable_companies = self.find_profitable_companies(fil_low)
+            return set(low_debt_companies) and set(profitable_companies)
     
+        elif 'profitable' in analysis_choices and 'declining' in analysis_choices and len(analysis_choices) == 2:
+            profitable_companies = self.find_profitable_companies(data)
+            fil_prof = data[data['cvr'].isin(profitable_companies)]
+            decline_companies = self.find_declining_companies(fil_prof)
+            return set(profitable_companies) and set(decline_companies)
+    
+        elif 'profitable' in analysis_choices and 'declining' in analysis_choices and 'low_debt' in analysis_choices and len(analysis_choices) == 3:
+            profitable_companies = self.find_profitable_companies(data)
+            filer_prof = data[data['cvr'].isin(profitable_companies)]
+            decline_companies = self.find_declining_companies(filer_prof)
+            low_debt_companies = self.find_low_debt_companies(filer_prof)
+            return set(profitable_companies) & set(decline_companies) & set(low_debt_companies)
+        else:
+            return 'No choice was made'
+    
+
     def apply_filter(self, filters_cvrs, data):
         filtered_data = data[data['cvr'].isin(filters_cvrs)]
         return filtered_data
