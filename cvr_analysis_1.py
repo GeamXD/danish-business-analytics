@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 from matplotlib import style
-style.use('ggplot')
 sns.set_style("whitegrid")
 sns.set_palette('colorblind')
 warnings.filterwarnings("ignore")
