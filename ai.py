@@ -11,8 +11,6 @@ load_dotenv()
 together.api_key = os.getenv('TOGETHER_AI_API_KEY')
 
 
-
-
 # Load the JSON data from a file
 def load_json():
     filename = 'businessscrapper/business-data/ten_business.json'
@@ -21,6 +19,8 @@ def load_json():
     return data
 
 # Function to get company description by name
+
+
 def get_company_description(data, company_name):
     for company in data:
         if company['company_name'] == company_name:
@@ -32,19 +32,31 @@ def get_company_description(data, company_name):
 def get_markdown_description(description):
     # Prompt
     prompt_1 = f"""
-        Write a business overview with the text below, into a markdown format.
-        make it official like in a website page
+        Write a business overview in this format for the text below.
+        
+        Name of Business
+        ----------------------
+        
+        
+        Services/What they Offer
+        -------------------------
+        
+        
+        Other Essential Details
+        -----------------------
+        
+        Note: You must maintain consistent structure. Return output as a markdown.
         text: {description}
     """
 
-    #generate response
+    # generate response
     output = together.Complete.create(
         prompt=prompt_1,
         model="mistralai/Mixtral-8x7B-Instruct-v0.1",
-        max_tokens = 512,
-        temperature = 0.5,
+        max_tokens=512,
+        temperature=0.5,
     )
-    
+
     # parse the completion then print the whole output
     generatedText = output['output']['choices'][0]['text']
 

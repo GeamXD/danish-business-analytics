@@ -109,7 +109,7 @@ class CvrBusiness:
                 period_profit = group.iloc[start_year:end_year]['profit_loss'].sum()
                 year_before_period_profit = group.iloc[start_year-1:start_year]['profit_loss'].sum()
                 if period_profit < 0 and year_before_period_profit > 0:
-                    decline_companies.append(cvr)
+                    decline_companies.append(str(cvr))
 
         return decline_companies
 

@@ -2,7 +2,10 @@ import streamlit as st
 import sqlite3
 import hashlib
 import ai as aipy
-from cvr_analysis import CvrBusiness
+import pandas as pd  # temporary
+# from cvr_analysis import CvrBusiness
+from cvr_analysis_1 import CvrBusiness
+from cvr_analysis_1 import cols_to_drop
 
 st.set_page_config(
     page_title="Benchmark App",
@@ -71,133 +74,262 @@ def insert_user(username, hashed_password):
 ####################### APP LAYOUT ##################################
 
 
-_, col2, _ = st.columns([1, 2, 1])
+_, col2, _ = st.columns([1, 2, 1])  # USED FOR SIGNIN AND LOGIN
 
 # Function to create the main app
 
+
 def main_app():
 
+    cvr_business = CvrBusiness()
 
     @st.cache_data
     def load_data():
-        cvr_business = CvrBusiness()
-        data = cvr_business.merge_tables()
+        data = cvr_business.merge_tables()  # remember to adjust
+        # data['cvr'] = data['cvr'].astype(str)  # temporary
         return data
 
+    # LOADS DATA
+    data = load_data()
+    data = data.drop(columns=cols_to_drop, axis=1)  # updated change
 
-
-
-    _, colB, _ = st.columns([1, 2, 1])
+    _, colB, _ = st.columns(3, gap='small')
     with colB:
-        st.markdown('#### Welcome to Benchmark App 📈⏱️📊')
-    
-    # data = load_data()
- 
+        st.title('Benchmark App📊')
 
-
-
-    ## side bar
+    ######################## side bar #################################
     with st.sidebar:
+
+        # User Input
+        st.subheader('👤 User Inputs')
+        cvr_num1 = st.text_input('Enter CVR 1', help='eg 25862716')
+        cvr_num2 = st.text_input('Enter CVR 2', help='eg 10036127')
+        # year_emp = st.text_input('Enter Year', help='Works with Employee plot')
+
         st.title('🔍 Filters')
 
         # Select a filter for merged data -- uses analyze business
         filters = ['low_debt', 'declining', 'profitable']
         select_filter = st.multiselect('Add Filter', filters)
 
+        # Select metric to use
+        metrics_to_analyze = ['', 'revenue',
+                              'external_expenses', 'profit_loss']
+        select_metric = st.selectbox(
+            'Select Business Metric', metrics_to_analyze, help='This is used with compare company metric')
+
         # Select Plots to show
-        st.title('Trend Analysis')
-        plot_1 = st.multiselect('Select Plot', ['compare companies profit','compare company metric'])
-        # plot_2 = []
+        st.subheader('Trend Analysis 📈')
+        plot_1 = st.selectbox(
+            'Select Plot', ['', 'compare companies profit', 'compare company metric'])
 
-        st.title('Comparison Analysis')
-        plot_3 = st.multiselect('Select Plot 2', ['compare roa'])
+        st.subheader('Comparative Analysis ⚖️')
+        plot_2 = st.selectbox('Select Plot 2', ['', 'compare roa'])
 
-        st.title('Financial Health Indicators')
-        plot_4 = st.multiselect('Select Plot 3', ['compare current ratio (single plot)', 
-        'compare current ratio', 'compare solvency ratio side_by_side', 
-        'compare solvency ratio combined'])
-        # plot_5 = []
-        # plot_6 = []
-        # plot_7 = []
+        st.subheader('Financial Health Indicators 💊')
+        plot_3 = st.selectbox('Select Plot 3', ['', 'compare current ratio (single plot)',
+                                                'compare current ratio', 'compare solvency ratio side_by_side',
+                                                'compare solvency ratio combined'])
 
-        st.title('Correlation  Analysis')
-        plot_8 = st.multiselect('Select Plot 4', ['compare revenue profit_loss'])
-        
-        st.title('Benchmarking  Analysis')
-        plot_9 = st.multiselect('Select Plot 5', ['compare total employee count'])
+        st.subheader('Correlation  Analysis 📈📉')
+        plot_4 = st.selectbox(
+            'Select Plot 4', ['', 'compare revenue profit_loss'])
 
+        st.subheader('Benchmarking  Analysis 📊🏋🏾‍♂️')
+        plot_5 = st.selectbox(
+            'Select Plot 5', ['', 'compare total employee count'])
 
-        st.title('👤 User Inputs')
-        cvr_num1 = st.text_input('Enter CVR_1')
-        cvr_num2 = st.text_input('Enter CVR_2')
-
-        # Last option at the bottom
+        ############################# ai ##############################
         json_data = aipy.load_json()
         # gets company names
-        companies_name = [company['company_name'] for company in json_data]
-        companies_name.insert(0,'')
-        selected_company = st.selectbox('Load Business Overview', companies_name)
+        companies_name = [company['company_name'].capitalize()
+                          for company in json_data]
+        companies_name.insert(0, '')
 
-        # gets company description
-    
-    # gets cvr_list
+        # Business overview
+        st.subheader('Business Overview',
+                     help='Select a company to view its business overview')
+
+        # Initialize a session state variable if it doesn't exist
+        if 'selected_option' not in st.session_state:
+            st.session_state['selected_option'] = None
+
+        # Create a select box
+        selected_company = st.selectbox("Choose an option:", companies_name)
+
+        # Create a button
+        if st.button("Confirm Selection"):
+            # Store the selection in the session state when the button is clicked
+            st.session_state['selected_option'] = selected_company
+
+        # Display the stored selection
+        if st.session_state['selected_option'] is not None:
+            st.write(
+                f"You have selected: {st.session_state['selected_option']}")
+
+    ####################  Exit Slider  #############################
+
+    # Get cvr
     cvr_list = [cvr_num1, cvr_num2]
 
     # Get filered data
+    st.session_state['filter_selected'] = None
     if select_filter:
-        cvrs_filtered = cvr_business.analysis_choices(data, select_filter)
-        filtered_d = cvr_business.apply_filter(cvrs_filtered, data)
-    
+        with st.spinner('Filtering data...'):
+            cvrs_filtered = cvr_business.analyze_companies(data, select_filter)
+            filtered_d = cvr_business.apply_filter(cvrs_filtered, data)
+            st.session_state['filter_selected'] = True
+
+    # Select Metric
+    st.session_state['metric_selected'] = None
+    if select_metric:
+        selected_metric = select_metric
+        st.session_state['metric_selected'] = True
+
+    ### SETS is_plotted to None --> for markdown ##
+    st.session_state['is_plotted'] = None
+
+    # Trend Analysis
     if plot_1:
         if 'compare companies profit' in plot_1:
-            fig_1 = cvr_business.compare_companies_profit(cvr_list, filtered_d)
-        if 'compare company metric' in plot_1:
-            fig_2 = cvr_business.compare_company_metric(filtered_d, cvr_list, )
+            if st.session_state['filter_selected']:
+                fig_1 = cvr_business.compare_companies_profit(
+                    cvr_list, filtered_d)
+            else:
+                fig_1 = cvr_business.compare_companies_profit(cvr_list, data)
+        else:
+            if st.session_state['filter_selected']:
+                if st.session_state['metric_selected']:
+                    fig_1 = cvr_business.compare_company_metric(
+                        filtered_d, cvr_list, selected_metric)
+                else:
+                    fig_1 = cvr_business.compare_company_metric(data, cvr_list)
+            else:
+                if st.session_state['metric_selected']:
+                    fig_1 = cvr_business.compare_company_metric(
+                        data, cvr_list, selected_metric)
+                else:
+                    fig_1 = cvr_business.compare_company_metric(data, cvr_list)
+        st.session_state['is_plotted'] = True
 
+    ######### Comparative Analysis ⚖️ #################
+    if plot_2:
+        if 'compare roa' in plot_2:
+            if st.session_state['filter_selected']:
+                fig_2 = cvr_business.compare_roa(filtered_d, cvr_list)
+            else:
+                fig_2 = cvr_business.compare_roa(data, cvr_list)
+        st.session_state['is_plotted'] = True
+
+    ######### Financial Health Indicators 💊 #################
     if plot_3:
-        fig_3 = cvr_business.compare_roa(filtered_d, cvr_list)
-    
+        if 'compare current ratio (single plot)' in plot_3:
+            if st.session_state['filter_selected']:
+                fig_3 = cvr_business.compare_current_ratio_single_plot(
+                    filtered_d, cvr_list)
+            else:
+                fig_3 = cvr_business.compare_current_ratio_single_plot(
+                    data, cvr_list)
+        elif 'compare current ratio' in plot_3:
+            if st.session_state['filter_selected']:
+                fig_3 = cvr_business.compare_current_ratio(
+                    filtered_d, cvr_list)
+            else:
+                fig_3 = cvr_business.compare_current_ratio(data, cvr_list)
+        elif 'compare solvency ratio side_by_side' in plot_3:
+            if st.session_state['filter_selected']:
+                fig_3 = cvr_business.compare_solvency_ratio_side_by_side(
+                    filtered_d, cvr_list)
+            else:
+                fig_3 = cvr_business.compare_solvency_ratio_side_by_side(
+                    data, cvr_list)
+        elif 'compare solvency ratio combined' in plot_3:
+            if st.session_state['filter_selected']:
+                fig_3 = cvr_business.compare_solvency_ratio_combined(
+                    filtered_d, cvr_list)
+            else:
+                fig_3 = cvr_business.compare_solvency_ratio_combined(
+                    data, cvr_list)
+        st.session_state['is_plotted'] = True
+
+    ######### Correlation  Analysis 📈📉#################
     if plot_4:
-        if 'compare current ratio (single plot)' in plot_4:
-            fig_4 = cvr_business.compare_current_ratio_single_plot(filtered_d, cvr_list)
-        if 'compare current ratio' in plot_4:
-            fig_5 = cvr_business.compare_current_ratio(filtered_d, cvr_list)
-        if 'compare solvency ratio side_by_side' in plot_4:
-            fig_6 = cvr_business.compare_solvency_ratio_side_by_side(filtered_d, cvr_list)
-        if 'compare solvency ratio combined' in plot_4:
-            fig_7 = cvr_business.compare_solvency_ratio_combined(filtered_d. cvr_list)
-    
-    if plot_8:
-        fig_8 = cvr_business.compare_revenue_profit_loss(filtered_d, cvr_list)
-    
-    if plot_9:
-        fig_9 = cvr_business.compare_total_employee_count(filtered_d, cvr_list)
+        if 'compare revenue profit_loss' in plot_4:
+            if st.session_state['filter_selected']:
+                fig_4 = cvr_business.compare_revenue_profit_loss(
+                    filtered_d, cvr_list)
+            else:
+                fig_4 = cvr_business.compare_revenue_profit_loss(
+                    data, cvr_list)
+        st.session_state['is_plotted'] = True
+
+    ######### Benchmarking  Analysis 📊🏋🏾‍♂️ #################
+    if plot_5:
+        if 'compare total employee count' in plot_5:  # compare revenue profit_loss'
+            if st.session_state['filter_selected']:
+                fig_5 = cvr_business.compare_total_employee_count(
+                    filtered_d, cvr_list)
+            else:
+                fig_5 = cvr_business.compare_total_employee_count(
+                    data, cvr_list)
+        st.session_state['is_plotted'] = True
+
+    # COLUMNS TO SPLIT THE PAGE
+    a = st.columns((0.5, 2, 0.5), gap='small')
+    b = st.columns((0.5, 2, 0.5), gap='small')
+    c = st.columns((0.5, 2, 0.5), gap='small')
+    d = st.columns((0.5, 2, 0.5), gap='small')
+    e = st.columns((0.5, 2, 0.5), gap='small')
+    f = st.columns((0.5, 2, 0.5), gap='small')
+    ########## USING COLUMN TO PLOT CHARTS ####################
+    try:
+        if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
+            a[1].pyplot(fig_1)
+    except:
+        pass
+    try:
+        if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
+            b[1].pyplot(fig_2)
+    except:
+        pass
+    try:
+        if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
+            c[1].pyplot(fig_3)
+    except:
+        pass
+    try:
+        if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
+            d[1].pyplot(fig_4)
+    except:
+        pass
+    try:
+        if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
+            e[1].pyplot(fig_5)
+    except:
+        pass
+
+    ############### Business overview display ################
+    if st.session_state['is_plotted']:
+        if selected_company and st.session_state['selected_option']:
+            description = aipy.get_company_description(
+                json_data, selected_company.lower())
+            mrkd = aipy.get_markdown_description(description)
+            try:
+                f[1].markdown(mrkd)  # mrkd
+            except:
+                pass
+    else:
+        if selected_company and st.session_state['selected_option']:
+            description = aipy.get_company_description(
+                json_data, selected_company.lower())
+            mrkd = aipy.get_markdown_description(description)
+            try:
+                st.markdown(mrkd)
+            except:
+                pass
 
 
-    column = st.columns(3)
-
-    with column[0]:
-        st.plotly_chart(fig_1)
-    
-    with column[1]:
-        st.plotly_chart[fig3]
-    
-    with column[2]:
-        st.plotly_chart(fig8)
-
-
-
-
-     # If company name is selected
-    if selected_company:
-        description = aipy.get_company_description(json_data, selected_company)
-        mrkd = aipy.get_markdown_description(description)
-        st.markdown(mrkd)
-
-
-
-
-####################### AUTHENTICATION ##################################
+############################ AUTHENTICATION ##################################
 
 # Function to create the login form
 def login_form():
