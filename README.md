@@ -7,6 +7,7 @@ The Benchmark App is a Streamlit-based web application designed for analyzing an
 - User authentication system (login/signup) using SQLite database.
 - Various data analysis functions on company financial data, including:
   - Trend analysis (e.g., comparing companies' profits).
+  - Cluster analysis
   - Comparative analysis (e.g., comparing return on assets).
   - Financial health indicators (e.g., current ratio, solvency ratio).
   - Correlation analysis between revenue and profit/loss.
