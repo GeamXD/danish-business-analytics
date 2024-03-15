@@ -109,7 +109,7 @@ def main_app():
         st.subheader('🔍 Filters')
         
         select_cluster = st.selectbox('Perform Cluster Analysis', ['', 'cluster'])
-        cluster_no = int(st.text_input('Enter Cluster No'))
+        cluster_no = st.text_input('Enter Cluster No')
 
         # Select a filter for merged data -- uses analyze business
         filters = ['low_debt', 'declining', 'profitable']
@@ -174,6 +174,7 @@ def main_app():
 
     # Get cvr
     cvr_list = [cvr_num1, cvr_num2]
+    cluster_no = int(cluster_no)
 
     # Get filered data
     st.session_state['filter_selected'] = None
