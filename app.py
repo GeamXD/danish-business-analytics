@@ -101,14 +101,16 @@ def main_app():
     with st.sidebar:
 
         # User Input
-        st.subheader('👤 User Inputs')
+        st.title('👤 User Inputs')
         cvr_num1 = st.text_input('Enter CVR 1', help='eg 25862716')
         cvr_num2 = st.text_input('Enter CVR 2', help='eg 10036127')
         # year_emp = st.text_input('Enter Year', help='Works with Employee plot')
 
-        st.subheader('🔍 Filters')
+        st.title('🔍 Filters')
         
-        select_cluster = st.selectbox('Perform Cluster Analysis', ['', 'cluster'])
+        # select_cluster = st.selectbox('Perform Cluster Analysis', ['', 'cluster'])
+        # select_cluster = st.button('Perform Cluster Analysis')
+        select_cluster = st.checkbox('Perform Cluster Analysis')
         cluster_no = st.text_input('Enter Cluster No')
 
         # Select a filter for merged data -- uses analyze business
@@ -174,7 +176,10 @@ def main_app():
 
     # Get cvr
     cvr_list = [cvr_num1, cvr_num2]
-    cluster_no = int(cluster_no)
+    try:
+        cluster_no = int(cluster_no)
+    except ValueError as e:
+        pass
 
     # Get filered data
     st.session_state['filter_selected'] = None
@@ -198,7 +203,15 @@ def main_app():
     if select_cluster:
         # clut_no, clusters, vec_data = cvr_business.cluster_companies()
         fig_0 = cvr_business.plot_clusters()
-        fig_00 = cvr_business.filter_cluster_companies(cluster_no)
+        if cluster_no:
+            clu = cvr_business.filter_cluster_companies(int(cluster_no))
+            fig_00 = pd.DataFrame(clu, columns=['cvr'])
+            fig_00['cvr'] = fig_00['cvr'].astype(str)
+        else:
+            clu = cvr_business.filter_cluster_companies()
+            fig_00 = pd.DataFrame(clu, columns=['cvr'])
+            fig_00['cvr'] = fig_00['cvr'].astype(str)
+
         st.session_state['is_plotted'] = True
 
     # Trend Analysis
@@ -297,7 +310,7 @@ def main_app():
     ########## USING COLUMN TO PLOT CHARTS ####################
     try:
         a_0[1].pyplot(fig_0)
-        a_0[2].table(fig_00)
+        a_0[2].write(fig_00)
     except Exception as e:
         pass
 
