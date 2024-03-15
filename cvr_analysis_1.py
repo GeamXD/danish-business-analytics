@@ -6,11 +6,13 @@ import sqlite3
 import pandas as pd
 import numpy as np
 import os
-# from pandas.api.types import is_datetime64_any_dtype as is_datetime
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 from matplotlib import style
+style.use('ggplot')
 sns.set_style("whitegrid")
 sns.set_palette('colorblind')
 warnings.filterwarnings("ignore")
@@ -120,20 +122,79 @@ class CvrBusiness:
         return decline_companies
 
     def find_low_debt_companies(self, data):
-        # Ensure the columns exist and are of the correct type
-        if 'debt_obligations' in data.columns and 'equity' in data.columns:
-            data['debt_obligations'] = data['debt_obligations'].astype(float)
-            data['equity'] = data['equity'].astype(float)
+            # Ensure the columns exist and are of the correct type
+            if 'debt_obligations' in data.columns and 'equity' in data.columns:
+                data['debt_obligations'] = data['debt_obligations'].astype(float)
+                data['equity'] = data['equity'].astype(float)
 
-            # Calculate the debt-to-equity ratio
-            data['debt_to_equity'] = data['debt_obligations'] / data['equity']
+                # Calculate the debt-to-equity ratio
+                data['debt_to_equity'] = data['debt_obligations'] / data['equity']
 
-            # Identify companies with low debt-to-equity ratio
-            low_debt_companies = data[data['debt_to_equity']
-                                      < 0.4]['cvr'].unique()
-            return low_debt_companies
-        else:
-            return "Required columns not found in the data"
+                # Identify companies with low debt-to-equity ratio
+                low_debt_companies = data[data['debt_to_equity']
+                                        < 0.4]['cvr'].unique()
+                return low_debt_companies
+            else:
+                return "Required columns not found in the data"
+    
+    def cluster_companies(self, metric='profit_loss'):
+        # load financial data
+        data = self.db_to_pandas()
+        financials = data['financials']
+        
+        # Extract companies operating year
+        financials['operation_year'] = pd.to_datetime(financials['reporting_period_end_date']).dt.year
+        
+        # Find number of operating years
+        companies_with_5_years = financials.groupby('cvr')['operation_year'].count()
+        
+        # Returns companies with 5 year or more operating year
+        companies_with_5_years = companies_with_5_years[companies_with_5_years >= 5].index
+        
+        # Filters financial data for those companies
+        filtered_financials = financials[financials['cvr'].isin(companies_with_5_years)]
+
+        # Normalize the 'net income' (assuming 'profit_loss' as net income)
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        # Creates the normalized_profit_loss
+        filtered_financials['normalized_profit_loss'] = scaler.fit_transform(filtered_financials[[metric]])
+        
+        # Create 5-year vectors for each company
+        vectorized_data = filtered_financials.groupby('cvr').apply(lambda x: x.sort_values('operation_year').tail(5)['normalized_profit_loss'].values)
+        vectorized_data = vectorized_data[vectorized_data.map(len) == 5]  # Ensuring all vectors have length 5
+        
+        # Convert to DataFrame
+        vectorized_data = pd.DataFrame(vectorized_data.tolist(), index=vectorized_data.index)
+        
+        # Apply K-means clustering
+        num_clusters = 10  # Finds 10 clusters
+        kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+        clusters = kmeans.fit_predict(vectorized_data)
+        
+        # Returns num of clusters, clusters and vectorized data
+        return num_clusters, clusters, vectorized_data
+    
+    
+    def plot_clusters(self):
+        
+        num_clusters, clusters, data = self.cluster_companies()
+        
+        # Analyzing the clusters (Plotting mean of clusters for visualization)
+        
+        fig,  ax = plt.subplots(figsize=(10, 6))
+        for i in range(num_clusters):
+            cluster_mean = data[clusters == i].mean()
+            plt.plot(cluster_mean, label=f'Cluster {i}')
+        plt.legend()
+        plt.title('Mean of Financial Performance Clusters')
+        
+        return fig
+   
+    
+    def filter_cluster_companies(self, choice=0):
+        _ ,clusters, data = self.cluster_companies()
+        companies_in_cluster = data.index[clusters == choice]
+        return companies_in_cluster
 
     def analyze_companies(self, data, analysis_choices):
 

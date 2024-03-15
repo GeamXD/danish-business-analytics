@@ -106,7 +106,10 @@ def main_app():
         cvr_num2 = st.text_input('Enter CVR 2', help='eg 10036127')
         # year_emp = st.text_input('Enter Year', help='Works with Employee plot')
 
-        st.title('🔍 Filters')
+        st.subheader('🔍 Filters')
+        
+        select_cluster = st.selectbox('Perform Cluster Analysis', ['', 'cluster'])
+        cluster_no = int(st.text_input('Enter Cluster No'))
 
         # Select a filter for merged data -- uses analyze business
         filters = ['low_debt', 'declining', 'profitable']
@@ -180,6 +183,7 @@ def main_app():
             filtered_d = cvr_business.apply_filter(cvrs_filtered, data)
             st.session_state['filter_selected'] = True
 
+
     # Select Metric
     st.session_state['metric_selected'] = None
     if select_metric:
@@ -188,6 +192,13 @@ def main_app():
 
     ### SETS is_plotted to None --> for markdown ##
     st.session_state['is_plotted'] = None
+
+    # Cluster analysis
+    if select_cluster:
+        # clut_no, clusters, vec_data = cvr_business.cluster_companies()
+        fig_0 = cvr_business.plot_clusters()
+        fig_00 = cvr_business.filter_cluster_companies(cluster_no)
+        st.session_state['is_plotted'] = True
 
     # Trend Analysis
     if plot_1:
@@ -275,6 +286,7 @@ def main_app():
         st.session_state['is_plotted'] = True
 
     # COLUMNS TO SPLIT THE PAGE
+    a_0 = st.columns((0.5, 2, 0.5), gap='small')
     a = st.columns((0.5, 2, 0.5), gap='small')
     b = st.columns((0.5, 2, 0.5), gap='small')
     c = st.columns((0.5, 2, 0.5), gap='small')
@@ -283,29 +295,36 @@ def main_app():
     f = st.columns((0.5, 2, 0.5), gap='small')
     ########## USING COLUMN TO PLOT CHARTS ####################
     try:
+        a_0[1].pyplot(fig_0)
+        a_0[2].table(fig_00)
+    except Exception as e:
+        pass
+
+    try:
         if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
             a[1].pyplot(fig_1)
-    except:
+    except Exception as e:
         pass
     try:
         if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
             b[1].pyplot(fig_2)
-    except:
+    except Exception as e:
         pass
     try:
         if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
             c[1].pyplot(fig_3)
-    except:
+    except Exception as e:
         pass
+    
     try:
         if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
             d[1].pyplot(fig_4)
-    except:
+    except Exception as e:
         pass
     try:
         if any(data['cvr'].isin(cvr_list)) or any(filtered_d['cvr'].isin(cvr_list)):
             e[1].pyplot(fig_5)
-    except:
+    except Exception as e:
         pass
 
     ############### Business overview display ################
@@ -316,7 +335,7 @@ def main_app():
             mrkd = aipy.get_markdown_description(description)
             try:
                 f[1].markdown(mrkd)  # mrkd
-            except:
+            except Exception as e:
                 pass
     else:
         if selected_company and st.session_state['selected_option']:
@@ -325,7 +344,7 @@ def main_app():
             mrkd = aipy.get_markdown_description(description)
             try:
                 st.markdown(mrkd)
-            except:
+            except Exception as e:
                 pass
 
 
