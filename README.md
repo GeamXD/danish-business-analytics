@@ -1,7 +1,7 @@
 # Benchmark App
 
 ## Overview
-The Benchmark App is a Streamlit-based web application designed for analyzing and comparing business metrics. This application leverages a SQLite database for user authentication and integrates with other Python modules to perform complex data analysis.
+The Benchmark App is a Streamlit-based web application designed for analyzing and comparing danish business metrics. This application leverages a SQLite database for user authentication and integrates with other Python modules to perform complex data analysis.
 
 ## Features
 - User authentication system (login/signup) using SQLite database.
